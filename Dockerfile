@@ -1,4 +1,4 @@
-FROM alpine:3
+FROM alpine:3.21
 
 LABEL description="Ansistrano deploy and rollback, based on Alpine 3.9"
 
