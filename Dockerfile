@@ -1,9 +1,8 @@
-FROM alpine:3.21
+FROM cgr.dev/chainguard/wolfi-base:latest
 
-LABEL description="Ansistrano deploy and rollback, based on Alpine 3.9"
+LABEL description="Ansistrano deploy and rollback, based on Wolfi (Chainguard)"
 
-RUN apk update && \
-	apk add --no-cache ansible openssh-client sshpass && \
+RUN apk upgrade --no-cache && \
+	apk add --no-cache py3-ansible-core openssh-client sshpass && \
 	ansible-galaxy install ansistrano.deploy ansistrano.rollback && \
-	rm -rf /tmp/* && \
-	rm -rf /var/cache/apk/*
+	rm -rf /tmp/* /root/.ansible/tmp
