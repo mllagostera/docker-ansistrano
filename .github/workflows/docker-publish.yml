@@ -8,6 +8,10 @@ on:
     - cron: "0 3 * * 0"
   workflow_dispatch:
 
+env:
+  IMAGE: mllagostera/ansistrano
+  TRIVY_IMAGE: aquasec/trivy:0.67.2
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -24,18 +28,36 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push latest
+      - name: Build latest
         uses: docker/build-push-action@v5
         with:
           context: .
           file: Dockerfile
-          push: true
+          load: true
+          push: false
           pull: true
           no-cache: true
           tags: |
-            mllagostera/ansistrano:latest
-            mllagostera/ansistrano:${{ github.sha }}
-            mllagostera/ansistrano:${{ steps.date.outputs.date }}
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ github.sha }}
+            ${{ env.IMAGE }}:${{ steps.date.outputs.date }}
+
+      - name: Scan latest with Trivy (fail on fixable HIGH/CRITICAL)
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            ${{ env.TRIVY_IMAGE }} image \
+            --scanners vuln \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --exit-code 1 \
+            ${{ env.IMAGE }}:latest
+
+      - name: Push latest
+        run: |
+          docker push ${{ env.IMAGE }}:latest
+          docker push ${{ env.IMAGE }}:${{ github.sha }}
+          docker push ${{ env.IMAGE }}:${{ steps.date.outputs.date }}
 
       - name: Build and push legacy
         uses: docker/build-push-action@v5
@@ -46,5 +68,5 @@ jobs:
           pull: true
           no-cache: true
           tags: |
-            mllagostera/ansistrano:legacy
-            mllagostera/ansistrano:legacy-${{ github.sha }}
+            ${{ env.IMAGE }}:legacy
+            ${{ env.IMAGE }}:legacy-${{ github.sha }}
