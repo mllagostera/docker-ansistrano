@@ -3,12 +3,20 @@ name: Build and push Docker images
 on:
   push:
     branches: [master]
+  schedule:
+    # Every Sunday at 03:00 UTC, to pick up the latest security patches
+    - cron: "0 3 * * 0"
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set build date
+        id: date
+        run: echo "date=$(date -u +%Y%m%d)" >> "$GITHUB_OUTPUT"
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
@@ -22,9 +30,12 @@ jobs:
           context: .
           file: Dockerfile
           push: true
+          pull: true
+          no-cache: true
           tags: |
             mllagostera/ansistrano:latest
             mllagostera/ansistrano:${{ github.sha }}
+            mllagostera/ansistrano:${{ steps.date.outputs.date }}
 
       - name: Build and push legacy
         uses: docker/build-push-action@v5
@@ -32,6 +43,8 @@ jobs:
           context: .
           file: Dockerfile.legacy
           push: true
+          pull: true
+          no-cache: true
           tags: |
             mllagostera/ansistrano:legacy
             mllagostera/ansistrano:legacy-${{ github.sha }}
